@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好日子</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@200&family=Cormorant+SC:wght@300&display=swap');
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;-webkit-font-smoothing:antialiased;}
+  body{
+    background:
+      radial-gradient(ellipse at 8% 6%,   rgba(215,115,95,0.95) 0%,transparent 44%),
+      radial-gradient(ellipse at 88% 8%,  rgba(205,145,50,0.88) 0%,transparent 42%),
+      radial-gradient(ellipse at 48% 58%, rgba(180,85,50,0.48)  0%,transparent 48%),
+      radial-gradient(ellipse at 92% 92%, rgba(198,152,55,0.52) 0%,transparent 38%),
+      radial-gradient(ellipse at 4%  92%, rgba(210,95,82,0.45)  0%,transparent 38%),
+      linear-gradient(150deg,#cc7860 0%,#e0a468 38%,#edc080 68%,#e2a86e 100%);
+  }
+  body::after{
+    content:'';position:fixed;inset:0;z-index:30;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.030'/%3E%3C/svg%3E");
+    background-size:180px 180px;
+  }
+  canvas{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
+  .eyebrow{
+    position:fixed;top:clamp(18px,3.2vh,38px);left:0;right:0;text-align:center;
+    font-family:'Cormorant SC',serif;font-size:clamp(13px,1.6vw,17px);
+    font-weight:300;letter-spacing:0.52em;color:rgba(50,18,8,0.70);
+    text-transform:uppercase;opacity:0;animation:fadeIn 1.8s ease 0.5s forwards;z-index:20;
+  }
+  .main-title{
+    position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
+    text-align:center;font-family:'Noto Serif TC',serif;
+    font-size:clamp(40px,6.5vw,78px);font-weight:200;
+    letter-spacing:0.30em;text-indent:0.30em;
+    color:#2e0e04;
+    text-shadow:0 0 30px rgba(220,170,80,0.35), 0 0 60px rgba(200,140,50,0.18);
+    opacity:0;animation:riseTitle 2.4s cubic-bezier(0.16,1,0.3,1) 1.0s forwards;
+    z-index:20;pointer-events:none;
+  }
+  .enter-wrap{
+    position:fixed;bottom:clamp(18px,3.5vh,44px);left:0;right:0;
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    opacity:0;animation:fadeIn 1.8s ease 3.2s forwards;z-index:20;pointer-events:all;
+  }
+  .enter-btn{
+    font-family:'Cormorant SC',serif;font-size:clamp(13px,1.5vw,16px);
+    font-weight:300;letter-spacing:0.55em;text-transform:uppercase;
+    color:rgba(50,18,8,0.65);background:none;border:none;cursor:pointer;
+    display:flex;align-items:center;gap:14px;padding:6px 0;transition:color 0.5s;
+  }
+  .enter-btn .gl{
+    display:block;height:0.5px;width:20px;
+    background:linear-gradient(90deg,transparent,rgba(170,115,35,0.65),transparent);
+    transition:width 0.5s cubic-bezier(0.16,1,0.3,1);
+  }
+  .enter-btn:hover{color:rgba(35,10,2,0.90);}
+  .enter-btn:hover .gl{width:34px;}
+  .voyage{
+    font-family:'Cormorant SC',serif;font-size:clamp(10px,1.1vw,13px);
+    font-weight:300;letter-spacing:0.38em;color:rgba(50,18,8,0.35);
+    text-transform:uppercase;
+  }
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes riseTitle{
+    from{opacity:0;transform:translateY(calc(-50% + 14px));}
+    to{opacity:1;transform:translateY(-50%);}
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="eyebrow">你的心理使用手冊</div>
+<h1 class="main-title">好日子</h1>
+<div class="enter-wrap">
+  <button class="enter-btn" onclick="handleEnter()">
+    <span class="gl"></span>進入<span class="gl"></span>
+  </button>
+  <span class="voyage">Begin Your Inner Voyage</span>
+</div>
+<script>
+/* Google OAuth 有時會帶 token 落在這裡，接住後轉給 login.html 處理 */
+if (window.location.hash.includes('access_token')) {
+  window.location.replace('./login.html' + window.location.hash);
+}
+
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let W,H,dpr,cx,cy,t=0,rafId;
+
+function resize(){
+  dpr=window.devicePixelRatio||1;
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  cx=W/2;cy=H/2;
+}
+
+class StarDust {
+  constructor(init){this.reset(init);}
+  reset(init){
+    this.x=Math.random()*W;
+    this.y=init?Math.random()*H:-8-Math.random()*25;
+    this.r=0.8+Math.random()*2.8;
+    this.maxA=0.25+Math.random()*0.55;
+    this.a=init?Math.random()*this.maxA:0;
+    this.vy=0.15+Math.random()*0.35;
+    this.vx=(Math.random()-0.5)*0.18;
+    this.wb=Math.random()*Math.PI*2;
+    this.wbs=0.005+Math.random()*0.010;
+    this.life=0;this.fi=40+Math.random()*60;
+    this.warm=Math.random()>0.55;
+  }
+  update(){
+    this.life++;this.wb+=this.wbs;
+    this.x+=this.vx+Math.sin(this.wb)*0.22;this.y+=this.vy;
+    if(this.life<this.fi)this.a=(this.life/this.fi)*this.maxA;
+    if(this.y>H+12)this.reset(false);
+    if(this.x<-12)this.x=W+6;if(this.x>W+12)this.x=-6;
+  }
+  draw(){
+    const cr=this.warm?'238,185,90':'255,242,220';
+    if(this.r>2){
+      const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r*2.6);
+      g.addColorStop(0,`rgba(${cr},${this.a})`);
+      g.addColorStop(0.5,`rgba(${cr},${(this.a*0.35).toFixed(3)})`);
+      g.addColorStop(1,`rgba(${cr},0)`);
+      ctx.beginPath();ctx.arc(this.x,this.y,this.r*2.6,0,Math.PI*2);
+      ctx.fillStyle=g;ctx.fill();
+    }
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${cr},${this.a})`;ctx.fill();
+  }
+}
+
+class DataStream {
+  constructor(init){this.reset(init);}
+  reset(init){
+    this.x=Math.random()*W;
+    this.y=init?Math.random()*H:-20;
+    this.len=8+Math.random()*22;
+    this.vy=0.5+Math.random()*0.8;
+    this.vx=(Math.random()-0.5)*0.3;
+    this.a=0;this.maxA=0.12+Math.random()*0.20;
+    this.life=0;this.fi=30+Math.random()*40;
+    this.maxLife=180+Math.random()*200;
+    const palette=['195,145,55','215,168,72','230,145,88','200,120,60'];
+    this.cr=palette[Math.floor(Math.random()*palette.length)];
+  }
+  update(){
+    this.life++;
+    this.x+=this.vx;this.y+=this.vy;
+    const p=this.life/this.maxLife;
+    if(this.life<this.fi)this.a=(this.life/this.fi)*this.maxA;
+    else if(p>0.7)this.a=((1-p)/0.3)*this.maxA;
+    else this.a=this.maxA;
+    if(this.life>this.maxLife||this.y>H+30)this.reset(false);
+  }
+  draw(){
+    ctx.beginPath();
+    ctx.moveTo(this.x,this.y);
+    ctx.lineTo(this.x-this.vx*this.len,this.y-this.vy*this.len);
+    ctx.strokeStyle=`rgba(${this.cr},${this.a})`;
+    ctx.lineWidth=0.8+Math.random()*0.4;
+    ctx.lineCap='round';ctx.stroke();
+  }
+}
+
+function drawBranch(x,y,angle,length,depth,tt){
+  if(depth<=0||length<2)return;
+  const sway=Math.sin(tt*0.008+depth*0.8)*0.04;
+  const ax=angle+sway;
+  const ex=x+Math.cos(ax)*length;
+  const ey=y+Math.sin(ax)*length;
+  const alpha=(depth/7)*0.52;
+  const ratio=1-(depth/7);
+  const r=Math.round(180+ratio*30);
+  const g2=Math.round(140+ratio*40);
+  const b=Math.round(40+ratio*80);
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);
+  ctx.strokeStyle=`rgba(${r},${g2},${b},${alpha*0.30})`;
+  ctx.lineWidth=(depth*0.55+0.5)*2.8;ctx.lineCap='round';ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);
+  ctx.strokeStyle=`rgba(${r},${g2},${b},${alpha})`;
+  ctx.lineWidth=depth*0.55+0.4;ctx.lineCap='round';ctx.stroke();
+  const spread=0.38+Math.sin(tt*0.006+depth)*0.06;
+  drawBranch(ex,ey,ax-spread,length*0.68,depth-1,tt);
+  drawBranch(ex,ey,ax+spread,length*0.68,depth-1,tt);
+  if(depth>4)drawBranch(ex,ey,ax,length*0.55,depth-2,tt);
+}
+
+function drawDataTree(tt){
+  const baseLen=Math.min(W,H)*0.062;
+  const numRoots=6;
+  for(let i=0;i<numRoots;i++){
+    const ang=(i/numRoots)*Math.PI*2 + tt*0.002;
+    const rx=cx+Math.cos(ang)*12;
+    const ry=cy+Math.sin(ang)*12;
+    drawBranch(rx,ry,ang,baseLen,6,tt);
+  }
+}
+
+function drawDialRing(R,breathe){
+  const rO=R*breathe*1.30;
+  ctx.beginPath();ctx.arc(cx,cy,rO,0,Math.PI*2);
+  ctx.strokeStyle='rgba(155,108,35,0.25)';ctx.lineWidth=0.8;ctx.stroke();
+  for(let i=0;i<60;i++){
+    const ang=(i/60)*Math.PI*2;
+    const isLong=i%5===0;
+    const r1=rO-(isLong?9:4);
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(ang)*r1,cy+Math.sin(ang)*r1);
+    ctx.lineTo(cx+Math.cos(ang)*rO,cy+Math.sin(ang)*rO);
+    ctx.strokeStyle=isLong?'rgba(175,128,45,0.50)':'rgba(175,128,45,0.22)';
+    ctx.lineWidth=isLong?1.0:0.5;ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(cx,cy,R*breathe*1.15,0,Math.PI*2);
+  ctx.strokeStyle='rgba(188,142,48,0.38)';ctx.lineWidth=1.6;ctx.stroke();
+}
+
+const RINGS=[
+  {k:3,A:26,spd:0.018,ph:0.00,lwB:2.8,lwV:1.8,r:145,g:95,b:30},
+  {k:5,A:18,spd:-0.013,ph:1.57,lwB:2.1,lwV:1.3,r:188,g:138,b:42},
+  {k:7,A:13,spd:0.022,ph:3.14,lwB:1.7,lwV:1.0,r:165,g:108,b:35},
+];
+
+function drawRing(ring,R,breathe,tt){
+  const STEPS=360;
+  ctx.save();ctx.globalAlpha=0.15;
+  for(let i=0;i<STEPS;i++){
+    const t0=(i/STEPS)*Math.PI*2,t1=((i+1)/STEPS)*Math.PI*2;
+    const w0=ring.A*Math.sin(ring.k*t0+ring.ph+tt*ring.spd);
+    const w1=ring.A*Math.sin(ring.k*t1+ring.ph+tt*ring.spd);
+    const r0=(R+w0)*breathe,r1=(R+w1)*breathe;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(t0)*r0,cy+Math.sin(t0)*r0*0.97);
+    ctx.lineTo(cx+Math.cos(t1)*r1,cy+Math.sin(t1)*r1*0.97);
+    ctx.strokeStyle=`rgba(${ring.r},${ring.g},${ring.b},0.9)`;
+    ctx.lineWidth=(ring.lwB+ring.lwV)*3.0;ctx.lineCap='round';ctx.stroke();
+  }
+  ctx.restore();
+  for(let i=0;i<STEPS;i++){
+    const t0=(i/STEPS)*Math.PI*2,t1=((i+1)/STEPS)*Math.PI*2;
+    const tm=(t0+t1)/2;
+    const w0=ring.A*Math.sin(ring.k*t0+ring.ph+tt*ring.spd);
+    const w1=ring.A*Math.sin(ring.k*t1+ring.ph+tt*ring.spd);
+    const r0=(R+w0)*breathe,r1=(R+w1)*breathe;
+    const lw=ring.lwB+ring.lwV*Math.abs(Math.sin(ring.k*tm*0.5+tt*ring.spd*0.3));
+    const av=0.60+0.28*Math.abs(Math.sin(ring.k*tm+tt*ring.spd));
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(t0)*r0,cy+Math.sin(t0)*r0*0.97);
+    ctx.lineTo(cx+Math.cos(t1)*r1,cy+Math.sin(t1)*r1*0.97);
+    ctx.strokeStyle=`rgba(${ring.r},${ring.g},${ring.b},${av})`;
+    ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke();
+  }
+}
+
+function drawCenterDial(R,breathe){
+  const r=R*breathe*0.68;
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+  g.addColorStop(0,'rgba(255,235,195,0.14)');
+  g.addColorStop(0.6,'rgba(238,195,138,0.05)');
+  g.addColorStop(1,'rgba(220,165,90,0)');
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(172,125,42,0.28)';ctx.lineWidth=1.2;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);
+  ctx.fillStyle='rgba(175,128,45,0.50)';ctx.fill();
+}
+
+function drawBgGlow(){
+  const g=ctx.createRadialGradient(W*0.10,H*0.07,0,W*0.10,H*0.07,Math.min(W,H)*0.62);
+  g.addColorStop(0,'rgba(255,228,192,0.18)');
+  g.addColorStop(0.6,'rgba(255,210,168,0.06)');
+  g.addColorStop(1,'rgba(255,210,168,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
+let dusts=[],streams=[];
+function initParticles(){
+  dusts=[];streams=[];
+  const n=Math.min(200,Math.floor(W*H/3800));
+  for(let i=0;i<n;i++)dusts.push(new StarDust(true));
+  const ns=Math.min(60,Math.floor(W*H/12000));
+  for(let i=0;i<ns;i++)streams.push(new DataStream(true));
+}
+
+function loop(){
+  rafId=requestAnimationFrame(loop);t++;
+  ctx.clearRect(0,0,W,H);
+  drawBgGlow();
+  dusts.forEach(d=>{d.update();d.draw();});
+  streams.forEach(s=>{s.update();s.draw();});
+  const R=Math.min(W,H)*0.22;
+  const breathe=1+Math.sin(t*0.001)*0.018;
+  drawDialRing(R,breathe);
+  RINGS.forEach(ring=>drawRing(ring,R,breathe,t));
+  drawDataTree(t);
+  drawCenterDial(R,breathe);
+}
+
+function handleEnter(){
+  ['.eyebrow','.main-title','.enter-wrap'].forEach(sel=>{
+    const el=document.querySelector(sel);
+    if(el){el.style.transition='opacity 0.8s ease';el.style.opacity='0';}
+  });
+  setTimeout(()=>{
+    cancelAnimationFrame(rafId);
+    window.location.href='./philosophy.html';
+  },900);
+}
+
+window.addEventListener('resize',()=>{resize();initParticles();});
+resize();initParticles();loop();
+</script>
+</body>
+</html>
